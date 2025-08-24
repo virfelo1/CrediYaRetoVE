@@ -1,13 +1,14 @@
 package co.com.projectve.r2dbc;
 
+import co.com.projectve.model.user.User;
 import co.com.projectve.r2dbc.helper.ReactiveAdapterOperations;
 import org.reactivecommons.utils.ObjectMapper;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public class MyReactiveRepositoryAdapter extends ReactiveAdapterOperations<
-    Object/* change for domain model */,
-    Object/* change for adapter model */,
+    User/* change for domain model */,
+    UserEntity/* change for adapter model */,
     String,
     MyReactiveRepository
 > {
@@ -17,7 +18,7 @@ public class MyReactiveRepositoryAdapter extends ReactiveAdapterOperations<
          *  super(repository, mapper, d -> mapper.mapBuilder(d,ObjectModel.ObjectModelBuilder.class).build());
          *  Or using mapper.map with the class of the object model
          */
-        super(repository, mapper, d -> mapper.map(d, Object.class/* change for domain model */));
+        super(repository, mapper, d -> mapper.map(d, User.class/* change for domain model */));
     }
 
 }

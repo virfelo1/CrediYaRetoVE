@@ -16,8 +16,7 @@ spring:
     username: "sa"
     password: "pass"
     driverClassName: "org.h2.Driver"
-  jpa:
-    databasePlatform: "org.hibernate.dialect.H2Dialect"
+
 management:
   endpoints:
     web:

@@ -1,5 +1,7 @@
 package co.com.projectve.api;
 
+import co.com.projectve.model.user.User;
+import co.com.projectve.usecase.user.UserUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
@@ -12,7 +14,7 @@ public class Handler {
 //private  final UseCase useCase;
 //private  final UseCase2 useCase2;
 
-    private final RegistrarUsuarioUseCase useCase;
+    private final UserUseCase useCase;
 
     public Mono<ServerResponse> registrarUsuario(ServerRequest request) {
         return request.bodyToMono(User.class)
