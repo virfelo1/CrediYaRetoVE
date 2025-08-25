@@ -24,7 +24,7 @@ public class UserUseCase {
                 .flatMap(u -> userRepository.emailExist(u.getEmail())
                         .flatMap(exist ->{
                             if (exist) return Mono.error(new IllegalArgumentException("Correo ya registrado"));
-                            return userRepository.save(u);
+                            return userRepository.saveUser(u);
                                 }));
     }
 

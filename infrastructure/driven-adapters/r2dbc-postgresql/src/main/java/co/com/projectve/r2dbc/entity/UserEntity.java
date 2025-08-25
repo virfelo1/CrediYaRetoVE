@@ -1,4 +1,4 @@
-package co.com.projectve.r2dbc;
+package co.com.projectve.r2dbc.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
