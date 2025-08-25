@@ -6,33 +6,29 @@ import co.com.projectve.r2dbc.entity.UserEntity;
 import co.com.projectve.r2dbc.helper.ReactiveAdapterOperations;
 import org.reactivecommons.utils.ObjectMapper;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Mono;
-
 
 @Repository
 public class MyReactiveRepositoryAdapter extends ReactiveAdapterOperations<
-    User/* change for domain model */,
-        UserEntity/* change for adapter model */,
-    String,
-    MyReactiveRepository
->
-implements UserRepository
-{
-    /*public MyReactiveRepositoryAdapter(MyReactiveRepository repository, ObjectMapper mapper) {
-        /**
-         *  Could be use mapper.mapBuilder if your domain model implement builder pattern
-         *  super(repository, mapper, d -> mapper.mapBuilder(d,ObjectModel.ObjectModelBuilder.class).build());
-         *  Or using mapper.map with the class of the object model
+        User,
+        UserEntity,
+        String,
+        MyReactiveRepository
+        >
+        implements UserRepository {
 
-        super(repository, mapper, d -> mapper.map(d, User.class/* change for domain model));
-    }*/
+    private final TransactionalOperator transactionalOperator;
 
-    public MyReactiveRepositoryAdapter(MyReactiveRepository repository, ObjectMapper mapper) {
+    public MyReactiveRepositoryAdapter(MyReactiveRepository repository, ObjectMapper mapper, TransactionalOperator transactionalOperator) {
         super(repository, mapper, entity -> mapper.map(entity, User.class));
+        this.transactionalOperator = transactionalOperator;
     }
+
     @Override
     public Mono<User> saveUser(User user) {
-        return super.save(user);
+        return super.save(user)
+                .as(transactionalOperator::transactional); // Aquí garantizas la atomicidad
     }
 
     @Override
