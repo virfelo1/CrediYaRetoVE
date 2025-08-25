@@ -37,9 +37,6 @@ implements UserRepository
 
     @Override
     public Mono<Boolean> emailExist(String email) {
-        return repository.findByEmail(email)
-                .map(userEntity -> true)
-                .defaultIfEmpty(false);
-
+        return repository.existsByEmail(email);
     }
 }
