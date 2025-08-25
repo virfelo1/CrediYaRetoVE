@@ -5,17 +5,18 @@ spring:
     name: "RetoCrediYaVE"
   devtools:
     add-properties: false
-  h2:
-    console:
-      enabled: true
-      path: "/h2"
-  profiles:
-    include: null
-  datasource:
-    url: "jdbc:h2:mem:test"
-    username: "sa"
-    password: "pass"
-    driverClassName: "org.h2.Driver"
+  sql:
+    init:
+      mode: always
+
+adapters:
+  r2dbc:
+    host: localhost
+    port: 5432
+    database: postgres
+    schema: public # You may need to adjust this value if your schema is different
+    username: postgres
+    password: 123456
 
 management:
   endpoints:
