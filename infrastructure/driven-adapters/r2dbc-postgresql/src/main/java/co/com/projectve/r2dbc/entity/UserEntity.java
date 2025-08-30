@@ -10,12 +10,12 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "user")
+@Table(name = "\"user\"")
 @Data
 public class UserEntity {
     @Id
     @Column("id")
-    private String id;
+    private Integer id;
 
     @Column("first_name")
     private String firstName;

@@ -19,7 +19,7 @@ import reactor.core.publisher.Mono;
 public class MyReactiveRepositoryAdapter extends ReactiveAdapterOperations<
         User,
         UserEntity,
-        String,
+        Integer,
         MyReactiveRepository
         >
         implements UserRepository {
