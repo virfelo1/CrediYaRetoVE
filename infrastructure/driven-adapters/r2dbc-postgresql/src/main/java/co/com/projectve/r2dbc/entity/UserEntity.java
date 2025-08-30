@@ -1,26 +1,41 @@
 package co.com.projectve.r2dbc.entity;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import lombok.Data;
+import lombok.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "user")
+@Table(name = "\"user\"")
 @Data
 public class UserEntity {
     @Id
-    private String id;
+    @Column("id")
+    private Integer id;
+
+    @Column("first_name")
     private String firstName;
+
+    @Column("last_name")
     private String lastName;
+
+    @Column("date_of_birth")
     private LocalDate dateOfBirth;
+
+    @Column("address")
     private String address;
+
+    @Column("phone_number")
     private String phoneNumber;
+
+    @Column("email")
     private String email;
+
+    @Column("base_salary")
     private BigDecimal baseSalary;
 }
 
