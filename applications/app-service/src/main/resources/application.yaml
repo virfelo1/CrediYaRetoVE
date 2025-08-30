@@ -8,6 +8,10 @@ spring:
   sql:
     init:
       mode: always
+  security:
+    user:
+      name: admin
+      password: Victor2026*@#119916."
 
 adapters:
   r2dbc:
