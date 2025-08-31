@@ -12,6 +12,8 @@ spring:
     user:
       name: admin
       password: Victor2026*@#119916."
+    cors:
+      allowed-origins: "http://localhost:3000,https://your-frontend-domain.com"
 
 adapters:
   r2dbc:
