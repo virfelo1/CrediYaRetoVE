@@ -64,11 +64,8 @@ public class RouterRest {
                                     @ApiResponse(responseCode = "200", description = "Login exitoso, token JWT generado",
                                             content = @Content(schema = @Schema(implementation = String.class, example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."))
                                     ),
-                                    @ApiResponse(responseCode = "401", description = "Error de validación en los datos de la solicitud",
-                                            content = @Content(schema = @Schema(implementation = String.class, example = "{\"error\":\"Datos de login inválidos\"}"))
-                                    ),
-                                    @ApiResponse(responseCode = "403", description = "Error de validación en los datos de la solicitud",
-                                            content = @Content(schema = @Schema(implementation = String.class, example = "{\"error\":\"Datos de login inválidos\"}"))
+                                    @ApiResponse(responseCode = "401", description = "Contraseña incorrecta",
+                                            content = @Content(schema = @Schema(implementation = String.class, example = "{\"error\":\"Contraseña incorrecta\"}"))
                                     ),
                                     @ApiResponse(responseCode = "404", description = "Usuario no encontrado",
                                             content = @Content(schema = @Schema(implementation = String.class, example = "{\"error\":\"Usuario no se encuentra registrado\"}"))

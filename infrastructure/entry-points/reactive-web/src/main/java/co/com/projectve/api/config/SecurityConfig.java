@@ -1,68 +1,50 @@
 package co.com.projectve.api.config;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableReactiveMethodSecurity;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
+import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
-import org.springframework.security.core.userdetails.*;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-//import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
+import org.springframework.security.web.server.context.NoOpServerSecurityContextRepository;
 
 @Configuration
 @EnableWebFluxSecurity
+@EnableReactiveMethodSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final JwtUtil jwtUtil;
+    private final JwtReactiveAuthenticationManager authenticationManager;
 
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
+        AuthenticationWebFilter authenticationWebFilter = new AuthenticationWebFilter(authenticationManager);
+        authenticationWebFilter.setServerAuthenticationConverter(new JwtAuthenticationConverter(jwtUtil));
+        authenticationWebFilter.setSecurityContextRepository(NoOpServerSecurityContextRepository.getInstance());
+
         return http
-                .csrf(csrf -> csrf.disable())
+                .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .cors(cors -> {})
+                .addFilterAt(authenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
                 .authorizeExchange(authorize -> authorize
-                        .pathMatchers(HttpMethod.GET, "/api/**").permitAll()//hasAnyRole("ADMIN", "DEALER")
-                        .pathMatchers(HttpMethod.POST, "/api/**").permitAll()
+                        .pathMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/webjars/**").permitAll()
+                        .pathMatchers(HttpMethod.POST, "/api/v1/login").permitAll()
+                        .pathMatchers(HttpMethod.POST, "/api/v1/usuarios").hasAnyRole("ADMIN", "ASESOR")
                         .pathMatchers(HttpMethod.PUT, "/api/**").hasAnyRole("ADMIN", "CLIENTE")
-                        .pathMatchers(HttpMethod.DELETE).hasRole("ADMIN")
-                        .pathMatchers("/api/v1/solicitud").hasRole("ADMIN")
+                        .pathMatchers(HttpMethod.DELETE, "/api/**").hasRole("ADMIN")
+                        .pathMatchers("/api/v1/solicitud").hasAnyRole("ADMIN", "CLIENTE")
                         .anyExchange().authenticated()
-                        //.permitAll()
-
                 )
-                .httpBasic(httpBasic -> {})
+                .httpBasic(httpBasic -> httpBasic.disable())
+                .formLogin(formLogin -> formLogin.disable())
                 .build();
-    }
-
-    /*@Bean
-    public ReactiveUserDetailsService memoryUsers() {
-        UserDetails admin = User.builder()
-                .username("admin")
-                .password(passwordEncoder().encode("admin"))
-                .roles("ADMIN")
-                .build();
-
-        UserDetails dealer = User.builder()
-                .username("dealer")
-                .password(passwordEncoder().encode("dealer123"))
-                .roles("DEALER")
-                .build();
-
-        return new MapReactiveUserDetailsService(admin, dealer);
-    }*/
-
-    private String mapRoleIdToRoleName(Integer roleId) {
-        // En una aplicación real, esto se obtendría de la base de datos o de un enum
-        switch (roleId) {
-            case 1:
-                return "ADMIN";
-            case 2:
-                return "ASESOR";
-            case 3:
-                return "CLIENTE";
-            default:
-                throw new IllegalArgumentException("Invalid role ID: " + roleId);
-        }
     }
 
     @Bean

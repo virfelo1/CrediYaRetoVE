@@ -11,8 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Mono;
-
-
+import java.util.Objects;
 
 
 @Repository
@@ -61,7 +60,14 @@ public class MyReactiveRepositoryAdapter extends ReactiveAdapterOperations<
         logger.debug("Buscando usuario por email: {}", email);
         return repository.findByEmail(email)
                 .map(entity -> mapper.map(entity, User.class))
-                .doOnSuccess(user -> logger.info("Usuario encontrado con ID: {} y email: {}", user.getId(), user.getEmail()))
+                // CAMBIO CLAVE: Comprobación explícita de nulidad en el doOnSuccess
+                .doOnSuccess(user -> {
+                    if (user != null) {
+                        logger.info("Usuario encontrado con ID: {} y email: {}", user.getId(), user.getEmail());
+                    } else {
+                        logger.info("No se encontró usuario con el email: {}", email);
+                    }
+                })
                 .doOnError(error -> logger.warn("Error al buscar usuario por email {}: {}", email, error.getMessage()));
     }
 }
