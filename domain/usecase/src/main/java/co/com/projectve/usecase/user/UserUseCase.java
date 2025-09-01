@@ -38,8 +38,12 @@ public class UserUseCase {
                         return Mono.error(new BusinessException("Correo ya registrado"));
                     }
                     
+                    // Asignar rol de cliente (Integer=3) antes de guardar
+                    user.setRol((Integer) 3);
+                    logger.info("Asignando id_rol de cliente (byte=3) al usuario: {}", user.getEmail());
+                    
                     logger.info("Procediendo con el guardado del usuario: {}", user.getEmail());
-                    logger.debug("Iniciando operación de persistencia para usuario: {}", user.getEmail());
+                    logger.debug("Iniciando operación de persistencia para usuario: {} con rol: {}", user.getEmail(), user.getRol());
                     
                     return userRepository.saveUser(user);
                 })
@@ -59,6 +63,18 @@ public class UserUseCase {
                 })
                 .doOnSuccess(success -> logger.info("Caso de uso completado exitosamente para email: {}", user.getEmail()))
                 .doOnError(error -> logger.error("Caso de uso falló para email {}: {}", user.getEmail(), error.getMessage()));
+    }
+
+    public Mono<User> findByEmail(String email) {
+        logger.info("Iniciando búsqueda de usuario por email: {}", email);
+        
+        return userRepository.findByEmail(email)
+                .doOnNext(user -> logger.info("Usuario encontrado con ID: {} y email: {}", user.getId(), user.getEmail()))
+                .doOnError(error -> {
+                    logger.error("Error al buscar usuario por email {}: {}", email, error.getMessage(), error);
+                })
+                .doOnSuccess(user -> logger.info("Búsqueda completada exitosamente para email: {}", email))
+                .doOnError(error -> logger.error("Búsqueda falló para email {}: {}", email, error.getMessage()));
     }
 }
 

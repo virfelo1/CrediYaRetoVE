@@ -21,8 +21,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> {})
                 .authorizeExchange(authorize -> authorize
-                        .pathMatchers(HttpMethod.GET, "/api/**").hasAnyRole("ADMIN", "DEALER")
-                        .pathMatchers(HttpMethod.POST, "/api/**").hasAnyRole("ADMIN", "DEALER")
+                        .pathMatchers(HttpMethod.GET, "/api/**").permitAll()//hasAnyRole("ADMIN", "DEALER")
+                        .pathMatchers(HttpMethod.POST, "/api/**").permitAll()
+                        .pathMatchers(HttpMethod.PUT, "/api/**").hasAnyRole("ADMIN", "CLIENTE")
                         .pathMatchers(HttpMethod.DELETE).hasRole("ADMIN")
                         .pathMatchers("/api/v1/solicitud").hasRole("ADMIN")
                         .anyExchange().authenticated()
@@ -49,6 +50,20 @@ public class SecurityConfig {
 
         return new MapReactiveUserDetailsService(admin, dealer);
     }*/
+
+    private String mapRoleIdToRoleName(Integer roleId) {
+        // En una aplicación real, esto se obtendría de la base de datos o de un enum
+        switch (roleId) {
+            case 1:
+                return "ADMIN";
+            case 2:
+                return "ASESOR";
+            case 3:
+                return "CLIENTE";
+            default:
+                throw new IllegalArgumentException("Invalid role ID: " + roleId);
+        }
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {

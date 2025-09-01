@@ -42,6 +42,6 @@ public class UserEntity {
     private String password;
 
     @Column("id_rol")
-    private String rol;
+    private Integer rol;
 }
 

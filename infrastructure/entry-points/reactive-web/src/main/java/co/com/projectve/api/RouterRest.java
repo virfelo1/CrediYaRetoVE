@@ -1,5 +1,6 @@
 package co.com.projectve.api;
 
+import co.com.projectve.api.dto.LoginDTO;
 import co.com.projectve.api.dto.UserDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -42,6 +43,35 @@ public class RouterRest {
                                     ),
                                     @ApiResponse(responseCode = "400", description = "Error de validación en los datos de la solicitud",
                                             content = @Content(schema = @Schema(implementation = String.class, example = "{\"error\":\"El tipo de documento es obligatorio.\"}"))
+                                    ),
+                                    @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+                            }
+                    )
+            ),
+            @RouterOperation(
+                    path = "/api/v1/login",
+                    method = RequestMethod.POST,
+                    beanClass = Handler.class,
+                    beanMethod = "loginUser",
+                    operation = @Operation(
+                            summary = "Autentica usuarios registrados",
+                            description = "Autentica usuarios registrados usando su correo electrónico y contraseña. Si el usuario no existe, retorna un error.",
+                            operationId = "loginUser",
+                            requestBody = @RequestBody(
+                                    content = @Content(schema = @Schema(implementation = LoginDTO.class))
+                            ),
+                            responses = {
+                                    @ApiResponse(responseCode = "200", description = "Login exitoso, token JWT generado",
+                                            content = @Content(schema = @Schema(implementation = String.class, example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."))
+                                    ),
+                                    @ApiResponse(responseCode = "401", description = "Error de validación en los datos de la solicitud",
+                                            content = @Content(schema = @Schema(implementation = String.class, example = "{\"error\":\"Datos de login inválidos\"}"))
+                                    ),
+                                    @ApiResponse(responseCode = "403", description = "Error de validación en los datos de la solicitud",
+                                            content = @Content(schema = @Schema(implementation = String.class, example = "{\"error\":\"Datos de login inválidos\"}"))
+                                    ),
+                                    @ApiResponse(responseCode = "404", description = "Usuario no encontrado",
+                                            content = @Content(schema = @Schema(implementation = String.class, example = "{\"error\":\"Usuario no se encuentra registrado\"}"))
                                     ),
                                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                             }

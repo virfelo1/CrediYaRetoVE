@@ -55,4 +55,13 @@ public class MyReactiveRepositoryAdapter extends ReactiveAdapterOperations<
                 .doOnSuccess(exists -> logger.info("Resultado de existencia para {}: {}", email, exists))
                 .doOnError(error -> logger.warn("Error al verificar existencia de email {}: {}", email, error.getMessage()));
     }
+
+    @Override
+    public Mono<User> findByEmail(String email) {
+        logger.debug("Buscando usuario por email: {}", email);
+        return repository.findByEmail(email)
+                .map(entity -> mapper.map(entity, User.class))
+                .doOnSuccess(user -> logger.info("Usuario encontrado con ID: {} y email: {}", user.getId(), user.getEmail()))
+                .doOnError(error -> logger.warn("Error al buscar usuario por email {}: {}", email, error.getMessage()));
+    }
 }

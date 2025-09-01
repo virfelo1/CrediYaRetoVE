@@ -23,6 +23,6 @@ public class User {
     private String email;
     private BigDecimal baseSalary;
     private String password;
-    private byte rol;
+    private Integer rol;
 
 }

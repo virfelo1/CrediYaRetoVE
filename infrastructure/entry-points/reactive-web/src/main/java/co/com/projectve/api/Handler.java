@@ -102,13 +102,91 @@ public class Handler {
                 .doOnError(error -> logger.error("Error al enviar respuesta: {}", error.getMessage()));
     }
 
+    @Operation(summary = "Login de usuarios",
+        description = "Autentica usuarios registrados usando su correo electrónico y contraseña. Si el usuario no existe, retorna un error.",
+        tags = {"Autenticacion"},
+        requestBody = @RequestBody(
+                content = @Content(schema = @Schema(implementation = LoginDTO.class))),
+        responses = {
+                @ApiResponse(responseCode = "200", description = "Login exitoso, token JWT generado",
+                        content = @Content(schema = @Schema(implementation = String.class, example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."))),
+                @ApiResponse(responseCode = "400", description = "Error de validación en los datos de la solicitud",
+                        content = @Content(schema = @Schema(implementation = Map.class, example = "{\"error\":\"Datos de login inválidos\"}"))),
+                @ApiResponse(responseCode = "404", description = "Usuario no encontrado",
+                        content = @Content(schema = @Schema(implementation = Map.class, example = "{\"error\":\"Usuario no se encuentra registrado\"}"))),
+                @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+        })
+
     public Mono<ServerResponse> loginUser(ServerRequest serverRequest) {
-        return request.bodyToMono(LoginDTO.class) // Get the authenticated user's principal
-                .map(dto -> ()) // Extract the username
-                .map(jwtUtil::create) // Create the JWT token
-                .flatMap(token -> ServerResponse.ok()
-                        .contentType(MediaType.TEXT_PLAIN)
-                        .bodyValue(token)); // Return the token
+        logger.info("Iniciando proceso de login de usuario");
+        
+        return serverRequest.bodyToMono(LoginDTO.class)
+                .doOnNext(dto -> {
+                    logger.info("LoginDTO recibido para usuario: {}", dto.username());
+                    logger.debug("Detalles del login: username={}", dto.username());
+                })
+                .flatMap(dto -> {
+                    logger.debug("Iniciando validación del LoginDTO para username: {}", dto.username());
+                    
+                    // Validación del DTO usando Bean Validation
+                    Set<ConstraintViolation<LoginDTO>> violations = validator.validate(dto);
+                    if (!violations.isEmpty()) {
+                        logger.warn("Validación fallida para username {}: {} violaciones encontradas", 
+                                   dto.username(), violations.size());
+                        violations.forEach(violation -> 
+                            logger.warn("Violación: {} - {}", violation.getPropertyPath(), violation.getMessage()));
+                        throw new ConstraintViolationException(violations);
+                    }
+                    
+                    logger.info("Validación exitosa para username: {}", dto.username());
+                    
+                    // Buscar usuario por email
+                    return useCase.findByEmail(dto.username());
+                })
+                .doOnNext(user -> {
+                    logger.info("Usuario encontrado para login con ID: {} y email: {}", 
+                               user.getId(), user.getEmail());
+                    logger.info("Usuario con id_rol: {}", user.getRol());
+                    
+                    // Aquí se podría agregar validación de contraseña
+                    // Por ahora solo verificamos que el usuario existe
+                })
+                .doOnError(error -> {
+                    if (error instanceof ConstraintViolationException) {
+                        logger.error("Error de validación en el login: {}", error.getMessage());
+                    } else {
+                        logger.error("Error inesperado durante el login: {}", error.getMessage(), error);
+                    }
+                })
+                .flatMap(user -> {
+                    logger.debug("Generando token JWT para usuario con ID: {}", user.getId());
+                    String token = jwtUtil.create(user.getEmail());
+                    logger.info("Token JWT generado exitosamente para usuario: {} con id_rol: {}", user.getEmail(), user.getRol());
+                    
+                    return ServerResponse.ok()
+                            .contentType(MediaType.TEXT_PLAIN)
+                            .bodyValue(token);
+                })
+                .doOnSuccess(success -> logger.info("Respuesta de login enviada exitosamente"))
+                .doOnError(error -> {
+                    if (error instanceof ConstraintViolationException) {
+                        logger.error("Error de validación al enviar respuesta de login: {}", error.getMessage());
+                    } else {
+                        logger.error("Error al enviar respuesta de login: {}", error.getMessage());
+                    }
+                })
+                .onErrorResume(ConstraintViolationException.class, error -> {
+                    logger.warn("Error de validación en login: {}", error.getMessage());
+                    return ServerResponse.badRequest()
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .bodyValue(Map.of("error", "Datos de login inválidos"));
+                })
+                .onErrorResume(Exception.class, error -> {
+                    logger.error("Usuario no encontrado o error en login: {}", error.getMessage());
+                    return ServerResponse.status(404)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .bodyValue(Map.of("error", "Usuario no se encuentra registrado"));
+                });
     }
 }
 
