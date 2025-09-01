@@ -9,9 +9,9 @@ spring:
     init:
       mode: always
   security:
-    user:
-      name: admin
-      password: Victor2026*@#119916."
+    #user:
+      #name: admin
+      #password: Victor2026*@#119916."
     cors:
       allowed-origins: "http://localhost:3000,https://your-frontend-domain.com"
 

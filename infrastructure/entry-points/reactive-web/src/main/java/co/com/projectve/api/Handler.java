@@ -1,5 +1,6 @@
 package co.com.projectve.api;
 
+import co.com.projectve.api.dto.LoginDTO;
 import co.com.projectve.api.dto.UserDTO;
 import co.com.projectve.api.mapper.UserDTOMapper;
 import co.com.projectve.model.user.User;
@@ -13,12 +14,14 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import co.com.projectve.api.config.JwtUtil;
 
 import java.util.Map;
 import java.util.Set;
@@ -32,6 +35,7 @@ public class Handler {
     private final UserUseCase useCase;
     private final UserDTOMapper userDTOMapper;
     private final Validator validator;
+    private final JwtUtil jwtUtil;
     private static final Logger logger = LoggerFactory.getLogger(Handler.class);
 
     @Operation(summary = "Registro de usuarios",
@@ -97,4 +101,14 @@ public class Handler {
                 .doOnSuccess(success -> logger.info("Respuesta enviada exitosamente"))
                 .doOnError(error -> logger.error("Error al enviar respuesta: {}", error.getMessage()));
     }
+
+    public Mono<ServerResponse> loginUser(ServerRequest serverRequest) {
+        return request.bodyToMono(LoginDTO.class) // Get the authenticated user's principal
+                .map(dto -> ()) // Extract the username
+                .map(jwtUtil::create) // Create the JWT token
+                .flatMap(token -> ServerResponse.ok()
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .bodyValue(token)); // Return the token
+    }
 }
+

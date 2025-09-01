@@ -9,6 +9,7 @@ dependencies {
     implementation 'org.hibernate.validator:hibernate-validator:8.0.1.Final'
     implementation 'org.glassfish:jakarta.el:4.0.2' // Necesario para expresiones en validaciones
     implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation("com.auth0:java-jwt:4.5.0")
     annotationProcessor "org.mapstruct:mapstruct-processor:$mapstructVersion"
     annotationProcessor "org.projectlombok:lombok-mapstruct-binding:$lombokMapstructBindingVersion"
 }

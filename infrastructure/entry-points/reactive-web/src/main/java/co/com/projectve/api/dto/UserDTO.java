@@ -35,6 +35,15 @@ public record UserDTO (
         @NotNull(message = "El salario es obligatorio")
         @DecimalMin(value = "0", inclusive = true, message = "El salario debe ser mayor que 0")
         @DecimalMax(value = "15000000", inclusive = true, message = "El salario no puede ser mayor que 15'000,000")
-        BigDecimal baseSalary
+        BigDecimal baseSalary,
+
+        @Schema(description = "La contraseña debe contener al menos: 1 letra mayúscula, 1 letra minúscula, 1 número y 1 carácter especial (@$!%*?&)", example = "Ej3mpl0@")
+        @NotBlank(message = "La contraseña es obligatoria")
+        @Size(min = 8, message = "La contraseña debe tener mínimo 8 caracteres")
+        @Pattern(
+                regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$",
+                message = "La contraseña debe contener al menos: 1 letra mayúscula, 1 letra minúscula, 1 número y 1 carácter especial (@$!%*?&)"
+        )
+        String password
             )
 {}
