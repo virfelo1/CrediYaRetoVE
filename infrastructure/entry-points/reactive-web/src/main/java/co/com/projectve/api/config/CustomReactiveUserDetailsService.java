@@ -1,7 +1,7 @@
 package co.com.projectve.api.config;
 
 import co.com.projectve.model.user.User;
-import co.com.projectve.usecase.user.UserUseCase;
+import co.com.projectve.model.user.gateways.UserRepository;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.ReactiveUserDetailsService;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -17,53 +17,42 @@ import java.util.Collections;
 public class CustomReactiveUserDetailsService implements ReactiveUserDetailsService {
 
     private static final Logger logger = LoggerFactory.getLogger(CustomReactiveUserDetailsService.class);
-    private final UserUseCase userUseCase;
+    private final UserRepository userRepository;
 
-    public CustomReactiveUserDetailsService(UserUseCase userUseCase) {
-        this.userUseCase = userUseCase;
+    public CustomReactiveUserDetailsService(UserRepository userRepository) {
+        this.userRepository = userRepository;
     }
 
     @Override
     public Mono<UserDetails> findByUsername(String username) {
         logger.debug("Buscando usuario por username: {}", username);
-        
-        return userUseCase.findByEmail(username)
-                .map(this::createUserDetails)
-                .doOnSuccess(userDetails -> 
-                    logger.info("Usuario encontrado: {} con rol: {}", username, userDetails.getAuthorities()))
-                .doOnError(error -> 
-                    logger.warn("Usuario no encontrado: {}", username))
+
+        return userRepository.findByEmail(username)
+                .flatMap(this::createUserDetails)
+                .doOnSuccess(userDetails ->
+                        logger.info("Usuario encontrado: {} con rol: {}", username, userDetails.getAuthorities()))
+                .doOnError(error ->
+                        logger.warn("Usuario no encontrado: {}", username))
                 .onErrorMap(error -> new UsernameNotFoundException("Usuario no encontrado: " + username));
     }
 
-    private UserDetails createUserDetails(User user) {
+    private Mono<UserDetails> createUserDetails(User user) {
         logger.debug("Creando UserDetails para usuario: {} con rol: {}", user.getEmail(), user.getRol());
-        
-        // Mapear el rol numérico a un rol de Spring Security
-        String role = mapRoleIdToRoleName(user.getRol());
-        
-        return org.springframework.security.core.userdetails.User.builder()
-                .username(user.getEmail())
-                .password(user.getPassword()) // Ya está encriptada
-                .authorities(Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role)))
-                .accountExpired(false)
-                .accountLocked(false)
-                .credentialsExpired(false)
-                .disabled(false)
-                .build();
-    }
 
-    private String mapRoleIdToRoleName(Integer roleId) {
-        switch (roleId) {
-            case 1:
-                return "ADMIN";
-            case 2:
-                return "ASESOR";
-            case 3:
-                return "CLIENTE";
-            default:
-                logger.warn("Rol desconocido: {}, asignando CLIENTE por defecto", roleId);
-                return "CLIENTE";
-        }
+        return userRepository.getRoleNameById(user.getRol())
+                .map(roleName -> {
+                    logger.debug("Rol de Spring Security asignado: ROLE_{}", roleName);
+                    return org.springframework.security.core.userdetails.User.builder()
+                            .username(user.getEmail())
+                            .password(user.getPassword())
+                            .authorities(Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + roleName)))
+                            .accountExpired(false)
+                            .accountLocked(false)
+                            .credentialsExpired(false)
+                            .disabled(false)
+                            .build();
+                })
+                .doOnError(error -> logger.error("Error al obtener el nombre del rol para el usuario {}: {}", user.getEmail(), error.getMessage()))
+                .onErrorResume(error -> Mono.empty());
     }
 }

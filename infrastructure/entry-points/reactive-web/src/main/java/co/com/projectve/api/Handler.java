@@ -6,7 +6,7 @@ import co.com.projectve.api.dto.UserDTO;
 import co.com.projectve.api.mapper.UserDTOMapper;
 import co.com.projectve.model.user.User;
 import co.com.projectve.usecase.user.UserUseCase;
-import co.com.projectve.usecase.user.exception.BusinessException; // Importa esta clase
+import co.com.projectve.usecase.user.exception.BusinessException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -27,7 +27,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import co.com.projectve.api.config.JwtUtil;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,9 +34,6 @@ import java.util.Set;
 @Component
 @RequiredArgsConstructor
 public class Handler {
-//private  final UseCase useCase;
-//private  final UseCase2 useCase2;
-
     private final UserUseCase useCase;
     private final UserDTOMapper userDTOMapper;
     private final Validator validator;
@@ -73,7 +69,6 @@ public class Handler {
                 .flatMap(dto -> {
                     logger.debug("Iniciando validación del DTO para email: {}", dto.email());
 
-                    // Validación del DTO usando Bean Validation
                     Set<ConstraintViolation<UserDTO>> violations = validator.validate(dto);
                     if (!violations.isEmpty()) {
                         logger.warn("Validación fallida para email {}: {} violaciones encontradas",
@@ -86,11 +81,9 @@ public class Handler {
                     logger.info("Validación exitosa para email: {}", dto.email());
                     logger.debug("DTO validado correctamente, procediendo con mapeo");
 
-                    // Mapeo y ejecución del caso de uso
                     User model = userDTOMapper.toModel(dto);
                     logger.debug("DTO mapeado a modelo User con ID: {}", model.getId());
 
-                    // Encriptar contraseña antes de guardar
                     String encryptedPassword = passwordEncoder.encode(model.getPassword());
                     model.setPassword(encryptedPassword);
                     logger.info("Contraseña encriptada para usuario: {}", model.getEmail());
@@ -141,7 +134,6 @@ public class Handler {
                 .flatMap(dto -> {
                     logger.debug("Iniciando validación del LoginDTO para username: {}", dto.username());
 
-                    // Validación del DTO usando Bean Validation
                     Set<ConstraintViolation<LoginDTO>> violations = validator.validate(dto);
                     if (!violations.isEmpty()) {
                         logger.warn("Validación fallida para username {}: {} violaciones encontradas",
@@ -153,15 +145,12 @@ public class Handler {
 
                     logger.info("Validación exitosa para username: {}", dto.username());
 
-                    // <--- CAMBIO 2: Verificar si el usuario está bloqueado ANTES de buscarlo.
                     if (loginAttemptService.isBlocked(dto.username())) {
                         logger.warn("Usuario bloqueado por demasiados intentos de login fallidos: {}", dto.username());
                         return Mono.error(new BusinessException("Demasiados intentos de login. Intenta de nuevo en 15 minutos"));
                     }
 
-                    // Buscar usuario por email y validar credenciales
                     return useCase.findByEmail(dto.username())
-                            // Maneja el caso de usuario no encontrado con switchIfEmpty
                             .switchIfEmpty(Mono.error(new BusinessException("Usuario no se encuentra registrado")))
                             .doOnNext(user -> {
                                 logger.info("Usuario encontrado para login con ID: {} y email: {}",
@@ -169,7 +158,6 @@ public class Handler {
                                 logger.info("Usuario con id_rol: {}", user.getRol());
                             })
                             .flatMap(user -> {
-                                // Validar contraseña usando Spring Security PasswordEncoder
                                 String storedPassword = user.getPassword();
                                 String providedPassword = dto.password();
 
@@ -177,30 +165,26 @@ public class Handler {
 
                                 if (passwordEncoder.matches(providedPassword, storedPassword)) {
                                     logger.info("Usuario logueado con éxito: {}", user.getEmail());
-                                    // <--- CAMBIO 3: Resetear intentos al tener éxito
                                     loginAttemptService.loginSucceeded(dto.username());
-                                    return Mono.just(user);
+
+                                    // Nuevo flujo para obtener el nombre del rol y generar el token
+                                    return useCase.getRoleNameById(user.getRol())
+                                            .flatMap(roleName -> {
+                                                List<String> userRoles = List.of(roleName);
+                                                String token = jwtUtil.create(user.getEmail(), userRoles);
+
+                                                logger.info("Token JWT generado exitosamente para usuario: {} con roles: {}", user.getEmail(), userRoles);
+
+                                                return ServerResponse.ok()
+                                                        .contentType(MediaType.TEXT_PLAIN)
+                                                        .bodyValue(token);
+                                            });
                                 } else {
                                     logger.warn("Contraseña incorrecta para usuario: {}", user.getEmail());
-                                    // <--- CAMBIO 4: Incrementar el contador de fallos
                                     loginAttemptService.loginFailed(dto.username());
                                     return Mono.error(new RuntimeException("Contraseña incorrecta"));
                                 }
                             });
-                })
-                .flatMap(user -> {
-                    // Generar token JWT usando JwtUtil
-                    logger.debug("Generando token JWT para usuario con ID: {}", user.getId());
-                    String userRoleAsString = String.valueOf(user.getRol());
-                    // Obtener el rol del usuario y pasarlo a JwtUtil
-                    List<String> userRoles = List.of(userRoleAsString);
-                    String token = jwtUtil.create(user.getEmail(), userRoles); // <-- CAMBIO AQUI
-
-                    logger.info("Token JWT generado exitosamente para usuario: {} con roles: {}", user.getEmail(), userRoles);
-
-                    return ServerResponse.ok()
-                            .contentType(MediaType.TEXT_PLAIN)
-                            .bodyValue(token);
                 })
                 .doOnSuccess(success -> logger.info("Respuesta de login enviada exitosamente"))
                 .onErrorResume(UnsupportedMediaTypeStatusException.class, error -> {
@@ -212,7 +196,6 @@ public class Handler {
                 .onErrorResume(ConstraintViolationException.class, error -> {
                     logger.warn("Error de validación en login: {}", error.getMessage());
 
-                    // Extraer mensajes de validación específicos
                     ConstraintViolationException cve = (ConstraintViolationException) error;
                     String errorMessage = cve.getConstraintViolations().stream()
                             .map(violation -> violation.getPropertyPath() + ": " + violation.getMessage())
@@ -223,12 +206,10 @@ public class Handler {
                             .contentType(MediaType.APPLICATION_JSON)
                             .bodyValue(Map.of("error", errorMessage));
                 })
-                // Se debe colocar el manejador más específico (BusinessException) antes del más genérico (RuntimeException).
                 .onErrorResume(BusinessException.class, error -> {
                     logger.warn("Error de negocio en login: {}", error.getMessage());
-                    // <--- CAMBIO 5: Manejar el error de negocio del servicio de intentos
                     if ("Demasiados intentos de login. Intenta de nuevo en 15 minutos".equals(error.getMessage())) {
-                        return ServerResponse.status(HttpStatus.TOO_MANY_REQUESTS) // 429 Too Many Requests
+                        return ServerResponse.status(HttpStatus.TOO_MANY_REQUESTS)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .bodyValue(Map.of("error", error.getMessage()));
                     } else {

@@ -7,4 +7,5 @@ public interface UserRepository {
     Mono<User> saveUser(User user);
     Mono<Boolean> emailExist(String email);
     Mono<User> findByEmail(String email);
+    Mono<String> getRoleNameById(Integer roleId); // aqui deje el metodo del rol
 }

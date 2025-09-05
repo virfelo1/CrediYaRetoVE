@@ -77,5 +77,10 @@ public class UserUseCase {
                 .doOnSuccess(user -> logger.info("Búsqueda completada exitosamente para email: {}", email))
                 .doOnError(error -> logger.error("Búsqueda falló para email {}: {}", email, error.getMessage()));
     }
+
+    public Mono<String> getRoleNameById(Integer roleId) {
+        return userRepository.getRoleNameById(roleId);
+    }
+
 }
 

@@ -2,6 +2,7 @@ package co.com.projectve.r2dbc;
 
 import co.com.projectve.model.user.User;
 import co.com.projectve.model.user.gateways.UserRepository;
+import co.com.projectve.r2dbc.entity.RolEntity;
 import co.com.projectve.r2dbc.entity.UserEntity;
 import co.com.projectve.r2dbc.helper.ReactiveAdapterOperations;
 import jakarta.annotation.PostConstruct;
@@ -25,11 +26,17 @@ public class MyReactiveRepositoryAdapter extends ReactiveAdapterOperations<
 
     private static final Logger logger = LoggerFactory.getLogger(MyReactiveRepositoryAdapter.class);
     private final TransactionalOperator transactionalOperator;
+    private final RolRepository rolRepository; // Declare the new repository
 
 
-    public MyReactiveRepositoryAdapter(MyReactiveRepository repository, ObjectMapper mapper, TransactionalOperator transactionalOperator) {
+    public MyReactiveRepositoryAdapter(
+            MyReactiveRepository repository,
+            ObjectMapper mapper,
+            TransactionalOperator transactionalOperator,
+            RolRepository rolRepository) { // Inject RolRepository in the constructor
         super(repository, mapper, entity -> mapper.map(entity, User.class));
         this.transactionalOperator = transactionalOperator;
+        this.rolRepository = rolRepository; // Assign the injected repository
     }
 
     @Override
@@ -70,4 +77,12 @@ public class MyReactiveRepositoryAdapter extends ReactiveAdapterOperations<
                 })
                 .doOnError(error -> logger.warn("Error al buscar usuario por email {}: {}", email, error.getMessage()));
     }
+
+    @Override
+    public Mono<String> getRoleNameById(Integer roleId) {
+        return rolRepository.findById(roleId.shortValue())
+                .map(RolEntity::getNameRol)
+                .switchIfEmpty(Mono.error(new RuntimeException("Role not found")));
+    }
+
 }
