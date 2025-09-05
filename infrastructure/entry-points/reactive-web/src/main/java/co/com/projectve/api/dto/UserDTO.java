@@ -16,6 +16,10 @@ public record UserDTO (
         @NotBlank(message = "Los apellidos son obligatorios")
         String lastName,
 
+        @Schema(description = "Número de documento del solicitante", example = "1000200300")
+        @NotBlank(message = "El número de documento es obligatorio")
+        String documentNumber,
+
         @Schema(description = "Fecha de nacimiento del usuario", example = "1990-05-15", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         LocalDate dateOfBirth,
 

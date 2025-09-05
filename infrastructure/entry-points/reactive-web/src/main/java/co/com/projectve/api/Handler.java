@@ -1,5 +1,6 @@
 package co.com.projectve.api;
 
+import co.com.projectve.api.config.LoginAttemptService;
 import co.com.projectve.api.dto.LoginDTO;
 import co.com.projectve.api.dto.UserDTO;
 import co.com.projectve.api.mapper.UserDTOMapper;
@@ -15,6 +16,7 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
@@ -26,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import co.com.projectve.api.config.JwtUtil;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -40,6 +43,7 @@ public class Handler {
     private final Validator validator;
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
+    private final LoginAttemptService loginAttemptService;
     private static final Logger logger = LoggerFactory.getLogger(Handler.class);
 
     @Operation(summary = "Registro de usuarios",
@@ -55,11 +59,11 @@ public class Handler {
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
             })
 
-    public Mono<ServerResponse> registerUser(ServerRequest request) {
+    public Mono<ServerResponse> registerUser(ServerRequest serverRequest) {
         logger.info("Iniciando proceso de registro de usuario");
-        logger.debug("Request recibida: {}", request);
+        logger.debug("Request recibida: {}", serverRequest);
 
-        return request.bodyToMono(UserDTO.class)
+        return serverRequest.bodyToMono(UserDTO.class)
                 .doOnSubscribe(subscription -> logger.debug("Iniciando suscripción para procesar DTO"))
                 .doOnNext(dto -> {
                     logger.info("DTO recibido para usuario: {}", dto.email());
@@ -149,9 +153,15 @@ public class Handler {
 
                     logger.info("Validación exitosa para username: {}", dto.username());
 
+                    // <--- CAMBIO 2: Verificar si el usuario está bloqueado ANTES de buscarlo.
+                    if (loginAttemptService.isBlocked(dto.username())) {
+                        logger.warn("Usuario bloqueado por demasiados intentos de login fallidos: {}", dto.username());
+                        return Mono.error(new BusinessException("Demasiados intentos de login. Intenta de nuevo en 15 minutos"));
+                    }
+
                     // Buscar usuario por email y validar credenciales
                     return useCase.findByEmail(dto.username())
-                            // *** CAMBIO 1: Manejar el caso de usuario no encontrado con switchIfEmpty ***
+                            // Maneja el caso de usuario no encontrado con switchIfEmpty
                             .switchIfEmpty(Mono.error(new BusinessException("Usuario no se encuentra registrado")))
                             .doOnNext(user -> {
                                 logger.info("Usuario encontrado para login con ID: {} y email: {}",
@@ -167,9 +177,13 @@ public class Handler {
 
                                 if (passwordEncoder.matches(providedPassword, storedPassword)) {
                                     logger.info("Usuario logueado con éxito: {}", user.getEmail());
+                                    // <--- CAMBIO 3: Resetear intentos al tener éxito
+                                    loginAttemptService.loginSucceeded(dto.username());
                                     return Mono.just(user);
                                 } else {
                                     logger.warn("Contraseña incorrecta para usuario: {}", user.getEmail());
+                                    // <--- CAMBIO 4: Incrementar el contador de fallos
+                                    loginAttemptService.loginFailed(dto.username());
                                     return Mono.error(new RuntimeException("Contraseña incorrecta"));
                                 }
                             });
@@ -177,8 +191,12 @@ public class Handler {
                 .flatMap(user -> {
                     // Generar token JWT usando JwtUtil
                     logger.debug("Generando token JWT para usuario con ID: {}", user.getId());
-                    String token = jwtUtil.create(user.getEmail());
-                    logger.info("Token JWT generado exitosamente para usuario: {} con id_rol: {}", user.getEmail(), user.getRol());
+                    String userRoleAsString = String.valueOf(user.getRol());
+                    // Obtener el rol del usuario y pasarlo a JwtUtil
+                    List<String> userRoles = List.of(userRoleAsString);
+                    String token = jwtUtil.create(user.getEmail(), userRoles); // <-- CAMBIO AQUI
+
+                    logger.info("Token JWT generado exitosamente para usuario: {} con roles: {}", user.getEmail(), userRoles);
 
                     return ServerResponse.ok()
                             .contentType(MediaType.TEXT_PLAIN)
@@ -205,6 +223,20 @@ public class Handler {
                             .contentType(MediaType.APPLICATION_JSON)
                             .bodyValue(Map.of("error", errorMessage));
                 })
+                // Se debe colocar el manejador más específico (BusinessException) antes del más genérico (RuntimeException).
+                .onErrorResume(BusinessException.class, error -> {
+                    logger.warn("Error de negocio en login: {}", error.getMessage());
+                    // <--- CAMBIO 5: Manejar el error de negocio del servicio de intentos
+                    if ("Demasiados intentos de login. Intenta de nuevo en 15 minutos".equals(error.getMessage())) {
+                        return ServerResponse.status(HttpStatus.TOO_MANY_REQUESTS) // 429 Too Many Requests
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .bodyValue(Map.of("error", error.getMessage()));
+                    } else {
+                        return ServerResponse.status(404)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .bodyValue(Map.of("error", error.getMessage()));
+                    }
+                })
                 .onErrorResume(RuntimeException.class, error -> {
                     if ("Contraseña incorrecta".equals(error.getMessage())) {
                         logger.warn("Error de contraseña incorrecta en login: {}", error.getMessage());
@@ -215,15 +247,8 @@ public class Handler {
                         logger.error("Error inesperado en login: {}", error.getMessage());
                         return ServerResponse.status(500)
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .bodyValue(Map.of("error: ", error.getMessage()));
+                                .bodyValue(Map.of("error: ", "Error interno del servidor"));
                     }
-                })
-                // *** CAMBIO 2: Manejar la BusinessException para el error 404 ***
-                .onErrorResume(BusinessException.class, error -> {
-                    logger.warn("Error de negocio en login: {}", error.getMessage());
-                    return ServerResponse.status(404)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .bodyValue(Map.of("error", error.getMessage()));
                 });
     }
 }

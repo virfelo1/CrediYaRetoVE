@@ -13,7 +13,7 @@ spring:
       #name: admin
       #password: $2a$12$IjraqlTIH6M9GUUy45J3w.p.Magbr.kX82cs9ysiJLAKNrdgYyhqW
     cors:
-      allowed-origins: "http://localhost:3000,https://your-frontend-domain.com"
+      allowed-origins: "http://localhost:8081,https://your-frontend-domain.com"
 
 adapters:
   r2dbc:
