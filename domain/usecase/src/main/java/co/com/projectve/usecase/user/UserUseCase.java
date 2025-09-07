@@ -4,6 +4,7 @@ import co.com.projectve.model.user.User;
 import co.com.projectve.model.user.gateways.UserRepository;
 import co.com.projectve.usecase.user.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,6 +81,10 @@ public class UserUseCase {
 
     public Mono<String> getRoleNameById(Integer roleId) {
         return userRepository.getRoleNameById(roleId);
+    }
+
+    public Flux<User> listUser () {
+        return userRepository.listUser();
     }
 
 }

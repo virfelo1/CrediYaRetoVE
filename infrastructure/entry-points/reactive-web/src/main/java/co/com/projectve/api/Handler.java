@@ -5,6 +5,9 @@ import co.com.projectve.api.dto.LoginDTO;
 import co.com.projectve.api.dto.UserDTO;
 import co.com.projectve.api.mapper.UserDTOMapper;
 import co.com.projectve.model.user.User;
+import co.com.projectve.r2dbc.MyReactiveRepositoryAdapter;
+import co.com.projectve.r2dbc.dto.UserListDTO;
+import co.com.projectve.r2dbc.mapper.UserEntityMapper;
 import co.com.projectve.usecase.user.UserUseCase;
 import co.com.projectve.usecase.user.exception.BusinessException;
 import io.swagger.v3.oas.annotations.Operation;
@@ -22,6 +25,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.server.UnsupportedMediaTypeStatusException;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +40,7 @@ import java.util.Set;
 public class Handler {
     private final UserUseCase useCase;
     private final UserDTOMapper userDTOMapper;
+    private final UserEntityMapper userEntityMapper;
     private final Validator validator;
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
@@ -231,5 +236,19 @@ public class Handler {
                                 .bodyValue(Map.of("error: ", "Error interno del servidor"));
                     }
                 });
+    }
+
+    public Mono<ServerResponse> listUser(ServerRequest serverRequest) {
+        logger.info("Recibida solicitud para listar usuarios.");
+
+        // Obtiene el flujo de usuarios del caso de uso y lo mapea
+        Flux<UserListDTO> dtoList = useCase.listUser()
+                .map(userEntityMapper::toDto); // Uso del mapper
+
+        // Retorna la respuesta con el nuevo Flux<UserListDTO>
+        return ServerResponse.ok()
+                .body(dtoList, UserListDTO.class)
+                .doOnSuccess(response -> logger.info("Listado de usuarios retornado exitosamente."))
+                .doOnError(error -> logger.error("Error al retornar el listado de usuarios: {}", error.getMessage()));
     }
 }
