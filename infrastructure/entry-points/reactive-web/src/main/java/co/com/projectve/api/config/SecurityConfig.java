@@ -39,7 +39,7 @@ public class SecurityConfig {
                         .pathMatchers(HttpMethod.POST, "/api/v1/usuarios").hasAnyRole("ADMIN", "ASESOR")
                         //.pathMatchers(HttpMethod.PUT, "/api/**").hasAnyRole("ADMIN", "CLIENTE")
                         //.pathMatchers(HttpMethod.DELETE, "/api/**").hasRole("ADMIN")
-                        .pathMatchers(HttpMethod.GET, "//api/v1/usuarios").hasAnyRole("ADMIN", "ASESOR")
+                        .pathMatchers(HttpMethod.GET, "/api/v1/usuarios").hasAnyRole("ADMIN", "ASESOR")
                         //.pathMatchers("/api/v1/solicitud").hasAnyRole("ADMIN", "CLIENTE")
                         .anyExchange().authenticated()
                 )

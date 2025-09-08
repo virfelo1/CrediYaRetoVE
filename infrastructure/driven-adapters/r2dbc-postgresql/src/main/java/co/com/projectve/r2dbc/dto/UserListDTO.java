@@ -15,7 +15,6 @@ public class UserListDTO {
     private Integer id;
     private String firstName;
     private String lastName;
-    private String documentNumber;
     private LocalDate dateOfBirth;
     private String address;
     private String phoneNumber;

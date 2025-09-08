@@ -179,10 +179,10 @@ public class Handler {
                                                 String token = jwtUtil.create(user.getEmail(), userRoles);
 
                                                 logger.info("Token JWT generado exitosamente para usuario: {} con roles: {}", user.getEmail(), userRoles);
-
+                                                Map<String, String> jsonResponse = Map.of("jwt", token);
                                                 return ServerResponse.ok()
-                                                        .contentType(MediaType.TEXT_PLAIN)
-                                                        .bodyValue(token);
+                                                        .contentType(MediaType.APPLICATION_JSON)
+                                                        .bodyValue(jsonResponse);
                                             });
                                 } else {
                                     logger.warn("Contraseña incorrecta para usuario: {}", user.getEmail());
