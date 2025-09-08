@@ -4,6 +4,7 @@ import co.com.projectve.api.dto.LoginDTO;
 import co.com.projectve.api.dto.UserDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -69,6 +70,23 @@ public class RouterRest {
                                     ),
                                     @ApiResponse(responseCode = "404", description = "Usuario no encontrado",
                                             content = @Content(schema = @Schema(implementation = String.class, example = "{\"error\":\"Usuario no se encuentra registrado\"}"))
+                                    ),
+                                    @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+                            }
+                    )
+            ),
+            @RouterOperation(
+                    path = "/api/v1/usuarios",
+                    method = RequestMethod.GET,
+                    beanClass = Handler.class,
+                    beanMethod = "listUser",
+                    operation = @Operation(
+                            summary = "Lista todos los usuarios",
+                            description = "Obtiene el listado completo de usuarios registrados en la base de datos.",
+                            operationId = "listUser",
+                            responses = {
+                                    @ApiResponse(responseCode = "200", description = "Listado obtenido con éxito",
+                                            content = @Content(array = @ArraySchema(schema = @Schema(implementation = UserDTO.class)))
                                     ),
                                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                             }
