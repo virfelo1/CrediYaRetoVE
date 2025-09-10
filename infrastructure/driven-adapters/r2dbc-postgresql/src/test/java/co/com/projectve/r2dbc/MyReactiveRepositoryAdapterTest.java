@@ -33,7 +33,7 @@ class MyReactiveRepositoryAdapterTest {
 
     private UserEntity buildUserEntity() {
         UserEntity userEntity = new UserEntity();
-        userEntity.setId("1");
+        userEntity.setId(1);
         userEntity.setFirstName("Test");
         userEntity.setLastName("User");
         userEntity.setDateOfBirth(LocalDate.of(1990, 1, 1));
@@ -46,7 +46,7 @@ class MyReactiveRepositoryAdapterTest {
 
     private User buildUser() {
         return User.builder()
-                .id("1")
+                .id(1)
                 .firstName("Test")
                 .lastName("User")
                 .dateOfBirth(LocalDate.of(1990, 1, 1))
@@ -62,10 +62,10 @@ class MyReactiveRepositoryAdapterTest {
         UserEntity userEntity = buildUserEntity();
         User user = buildUser();
 
-        when(repository.findById("1")).thenReturn(Mono.just(userEntity));
+        when(repository.findById(1)).thenReturn(Mono.just(userEntity));
         when(mapper.map(userEntity, User.class)).thenReturn(user);
 
-        Mono<User> result = repositoryAdapter.findById("1");
+        Mono<User> result = repositoryAdapter.findById(1);
 
         StepVerifier.create(result)
                 .expectNextMatches(value -> value.getId().equals("1"))

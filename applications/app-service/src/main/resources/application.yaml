@@ -2,27 +2,34 @@ server:
   port: 8080
 spring:
   application:
-    name: "RetoCrediYaVE"
+    name: "autenticacion"
   devtools:
     add-properties: false
   sql:
     init:
       mode: always
-  security:
-    #user:
-      #name: admin
-      #password: $2a$12$IjraqlTIH6M9GUUy45J3w.p.Magbr.kX82cs9ysiJLAKNrdgYyhqW
-    cors:
-      allowed-origins: "http://localhost:8081,https://your-frontend-domain.com"
+  #r2dbc:
+    #url: r2dbc:postgresql://postgres:5432/postgres # Usar el nombre del servicio 'postgres'
+    #username: postgres
+    #password: 123456
+
+  cors:
+    allowed-origins: "http://localhost:8085,https://your-frontend-domain.com"
 
 adapters:
   r2dbc:
-    host: localhost
-    port: 5432
-    database: postgres
-    schema: public # You may need to adjust this value if your schema is different
-    username: postgres
-    password: 123456
+    host: ${ADAPTERS_R2DBC_HOST:postgres}
+    port: ${ADAPTERS_R2DBC_PORT:5432}
+    database: ${ADAPTERS_R2DBC_DATABASE:postgres}
+    schema: ${ADAPTERS_R2DBC_SCHEMA:public}
+    username: ${ADAPTERS_R2DBC_USERNAME:postgres}
+    password: ${ADAPTERS_R2DBC_PASSWORD:123456}
+    #host: localhost
+    #port: 5432
+    #database: postgres
+    #schema: public # You may need to adjust this value if your schema is different
+    #username: postgres
+    #password: 123456
 
 management:
   endpoints:
@@ -36,6 +43,11 @@ management:
 cors:
   allowed-origins: "http://localhost:4200,http://localhost:8080"
 
+security:
+  jwt:
+    #secret: ${SECURITY_JWT_SECRET}
+    secret: "1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t1u2v3w4x5y6z7a8b9c0d1e2f"
+
 auth:
   service:
-    base-url: http://localhost:8081
+    base-url: http://localhost:8085
